@@ -202,6 +202,12 @@ export class NoteEntityService implements OnModuleInit {
 	public async isVisibleForMe(note: Note, meId: User['id'] | null): Promise<boolean> {
 		// This code must always be synchronized with the checks in generateVisibilityQuery.
 		// visibility が specified かつ自分が指定されていなかったら非表示
+		if (note.localOnly) {
+			if (meId == null) {
+				return false;
+			}
+		}
+
 		if (note.visibility === 'specified') {
 			if (meId == null) {
 				return false;
