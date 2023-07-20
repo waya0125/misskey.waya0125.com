@@ -607,7 +607,8 @@ defineExpose({
 					}
 
 					> .emoji {
-						height: 1.25em;
+						max-width: 100%;
+            object-fit: contain;
 						vertical-align: -.25em;
 						pointer-events: none;
 					}
