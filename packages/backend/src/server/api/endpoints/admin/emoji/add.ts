@@ -62,7 +62,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> {
 			const driveFile = await this.driveFilesRepository.findOneBy({ id: ps.fileId });
 			if (driveFile == null) throw new ApiError(meta.errors.noSuchFile);
 
-			const name = ps.name ?? driveFile.name.split('.')[0].match(/^[a-z0-9_]+$/) ? driveFile.name.split('.')[0] : `_${secureRndstr(8, { chars: L_CHARS })}_`;
+			const name = ps.name ?? (driveFile.name.split('.')[0].match(/^[a-z0-9_]+$/) ? driveFile.name.split('.')[0] : `_${secureRndstr(8, { chars: L_CHARS })}_`);
 
 			const emoji = await this.customEmojiService.add({
 				driveFile,
