@@ -59,8 +59,8 @@ export default class extends Endpoint<typeof meta, typeof paramDef> {
 				default: query.orderBy('ticket.id', 'DESC'); break;
 			}
 
-			query.take(ps.limit);
-			query.skip(ps.offset);
+			query.limit(ps.limit);
+			query.offset(ps.offset);
 
 			const tickets = await query.getMany();
 
