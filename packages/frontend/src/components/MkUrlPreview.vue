@@ -313,7 +313,7 @@ onUnmounted(() => {
 	}
 
 	.thumbnail {
-		height: 80px;
+		height: 100%;
 	}
 
 	.body {
