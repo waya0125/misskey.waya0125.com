@@ -12,6 +12,15 @@
 
 -->
 
+## Wayaskey 2023.8.3
+
+- [`Kai-Z-JP/pub.odekake.love`](https://github.com/Kai-Z-JP/pub.odekake.love/)より [`fix: 高速通信環境でエラーが発生する問題を修正`](https://github.com/Kai-Z-JP/pub.odekake.love/commit/9b56fdecd4caa9fe4b8d9f7bf8df7bfb0e877f74) をチェリーピック
+  - これには [`ceb3960`](https://github.com/Kai-Z-JP/pub.odekake.love/commit/ceb396013ab72513fd0438ef4ce1cd96aa785da5) でのチェリーピックを含みます。そのためこのマージでは多重マージが発生しております。
+- [`anatawa12/misskey/compression-methods`](https://github.com/anatawa12/misskey/tree/compression-methods)より [`feat(frontend): selectable compression kind #11760`](https://github.com/misskey-dev/misskey/pull/11760) をチェリーピック
+  - 画像の圧縮方法を選択可能にしました
+  	- サイズ変更を行うかを選択可能にしました
+  	- 強制的に非可逆圧縮できるようになりました
+
 ## 2023.9.0 (unreleased)
 
 ### General
@@ -33,9 +42,6 @@
 - Enhance: AiScriptで`LOCALE`として現在の設定言語を取得できるように
 - `$[rainbow ]`記法が、動きのあるMFMが無効になっていても使用できるようになりました
 - Playの操作を行うAPI TokenをAPIコンソールから発行できるように
-- 画像の圧縮方法を選択可能にしました
-    - サイズ変更を行うかを選択可能にしました
-    - 強制的に非可逆圧縮できるようになりました
 - Fix: サーバー情報画面(`/instance-info/{domain}`)でブロックができないのを修正
 - Fix: 未読のお知らせの「わかった」をクリック・タップしてもその場で「わかった」が消えない問題を修正
 - Fix: iOSで画面を回転させるとテキストサイズが変わる問題を修正
