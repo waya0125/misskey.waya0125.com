@@ -138,6 +138,18 @@ const add = async (ev: MouseEvent) => {
 	}, 'closed');
 };
 
+const addAll = async (ev: MouseEvent) => {
+	const files = await selectFiles(ev.currentTarget ?? ev.target, null);
+
+	const promise = Promise.all(files.map(file => os.api('admin/emoji/add', {
+		fileId: file.id,
+	})));
+	promise.then(() => {
+		emojisPaginationComponent.value.reload();
+	});
+	os.promiseDialog(promise);
+};
+
 const edit = (emoji) => {
 	os.popup(defineAsyncComponent(() => import('./emoji-edit-dialog.vue')), {
 		emoji: emoji,
@@ -291,6 +303,11 @@ const headerActions = $computed(() => [{
 	icon: 'ti ti-plus',
 	text: i18n.ts.addEmoji,
 	handler: add,
+}, {
+	asFullButton: true,
+	icon: 'ti ti-files',
+	text: i18n.ts.addEmoji,
+	handler: addAll,
 }, {
 	icon: 'ti ti-dots',
 	handler: menu,
