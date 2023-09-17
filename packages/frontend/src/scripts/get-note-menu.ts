@@ -32,7 +32,7 @@ export async function getNoteClipMenu(props: {
 
 	const appearNote = isRenote ? props.note.renote as Misskey.entities.Note : props.note;
 
-	const clips = await clipsCache.fetch(() => os.api('clips/list'));
+	const clips = await clipsCache.fetch();
 	return [...clips.map(clip => ({
 		text: clip.name,
 		action: () => {
@@ -238,18 +238,6 @@ export function getNoteMenu(props: {
 		os.pageWindow(`/notes/${appearNote.id}`);
 	}
 
-	function showReactions(): void {
-		os.popup(defineAsyncComponent(() => import('@/components/MkReactedUsersDialog.vue')), {
-			noteId: appearNote.id,
-		}, {}, 'closed');
-	}
-
-	function showRenotes(): void {
-		os.popup(defineAsyncComponent(() => import('@/components/MkRenotedUsersDialog.vue')), {
-			noteId: appearNote.id,
-		}, {}, 'closed');
-	}
-
 	async function translate(): Promise<void> {
 		if (props.translation.value != null) return;
 		props.translating.value = true;
@@ -279,14 +267,6 @@ export function getNoteMenu(props: {
 				icon: 'ti ti-info-circle',
 				text: i18n.ts.details,
 				action: openDetail,
-			}, {
-				icon: 'ti ti-repeat',
-				text: i18n.ts.renotesList,
-				action: showRenotes,
-			}, {
-				icon: 'ti ti-icons',
-				text: i18n.ts.reactionsList,
-				action: showReactions,
 			}, {
 				icon: 'ti ti-copy',
 				text: i18n.ts.copyContent,
