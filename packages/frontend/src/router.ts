@@ -5,7 +5,7 @@
 
 import { AsyncComponentLoader, defineAsyncComponent, inject } from 'vue';
 import { Router } from '@/nirax';
-import { $i, iAmModerator } from '@/account';
+import { $i, iAmModerator } from '@/account.js';
 import MkLoading from '@/pages/_loading_.vue';
 import MkError from '@/pages/_error_.vue';
 
@@ -396,6 +396,10 @@ export const routes = [{
 		name: 'abuses',
 		component: page(() => import('./pages/admin/abuses.vue')),
 	}, {
+		path: '/modlog',
+		name: 'modlog',
+		component: page(() => import('./pages/admin/modlog.vue')),
+	}, {
 		path: '/settings',
 		name: 'settings',
 		component: page(() => import('./pages/admin/settings.vue')),
@@ -431,6 +435,10 @@ export const routes = [{
 		path: '/proxy-account',
 		name: 'proxy-account',
 		component: page(() => import('./pages/admin/proxy-account.vue')),
+	}, {
+		path: '/external-services',
+		name: 'external-services',
+		component: page(() => import('./pages/admin/external-services.vue')),
 	}, {
 		path: '/other-settings',
 		name: 'other-settings',
