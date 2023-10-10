@@ -257,7 +257,6 @@ import * as ep___notes_clips from './endpoints/notes/clips.js';
 import * as ep___notes_conversation from './endpoints/notes/conversation.js';
 import * as ep___notes_create from './endpoints/notes/create.js';
 import * as ep___notes_delete from './endpoints/notes/delete.js';
-import * as ep___notes_update from './endpoints/notes/update.js';
 import * as ep___notes_favorites_create from './endpoints/notes/favorites/create.js';
 import * as ep___notes_favorites_delete from './endpoints/notes/favorites/delete.js';
 import * as ep___notes_featured from './endpoints/notes/featured.js';
@@ -326,6 +325,7 @@ import * as ep___users_followers from './endpoints/users/followers.js';
 import * as ep___users_following from './endpoints/users/following.js';
 import * as ep___users_gallery_posts from './endpoints/users/gallery/posts.js';
 import * as ep___users_getFrequentlyRepliedUsers from './endpoints/users/get-frequently-replied-users.js';
+import * as ep___users_featuredNotes from './endpoints/users/featured-notes.js';
 import * as ep___users_lists_create from './endpoints/users/lists/create.js';
 import * as ep___users_lists_delete from './endpoints/users/lists/delete.js';
 import * as ep___users_lists_list from './endpoints/users/lists/list.js';
@@ -605,7 +605,6 @@ const eps = [
 	['notes/conversation', ep___notes_conversation],
 	['notes/create', ep___notes_create],
 	['notes/delete', ep___notes_delete],
-	['notes/update', ep___notes_update],
 	['notes/favorites/create', ep___notes_favorites_create],
 	['notes/favorites/delete', ep___notes_favorites_delete],
 	['notes/featured', ep___notes_featured],
@@ -674,6 +673,7 @@ const eps = [
 	['users/following', ep___users_following],
 	['users/gallery/posts', ep___users_gallery_posts],
 	['users/get-frequently-replied-users', ep___users_getFrequentlyRepliedUsers],
+	['users/featured-notes', ep___users_featuredNotes],
 	['users/lists/create', ep___users_lists_create],
 	['users/lists/delete', ep___users_lists_delete],
 	['users/lists/list', ep___users_lists_list],

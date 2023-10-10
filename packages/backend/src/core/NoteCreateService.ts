@@ -53,6 +53,8 @@ import { DB_MAX_NOTE_TEXT_LENGTH } from '@/const.js';
 import { RoleService } from '@/core/RoleService.js';
 import { MetaService } from '@/core/MetaService.js';
 import { SearchService } from '@/core/SearchService.js';
+import { FeaturedService } from '@/core/FeaturedService.js';
+import { RedisTimelineService } from '@/core/RedisTimelineService.js';
 
 type NotificationType = 'reply' | 'renote' | 'quote' | 'mention';
 
@@ -193,6 +195,7 @@ export class NoteCreateService implements OnApplicationShutdown {
 		private idService: IdService,
 		private globalEventService: GlobalEventService,
 		private queueService: QueueService,
+		private redisTimelineService: RedisTimelineService,
 		private noteReadService: NoteReadService,
 		private notificationService: NotificationService,
 		private relayService: RelayService,
@@ -200,6 +203,7 @@ export class NoteCreateService implements OnApplicationShutdown {
 		private hashtagService: HashtagService,
 		private antennaService: AntennaService,
 		private webhookService: WebhookService,
+		private featuredService: FeaturedService,
 		private remoteUserResolveService: RemoteUserResolveService,
 		private apDeliverManagerService: ApDeliverManagerService,
 		private apRendererService: ApRendererService,
@@ -252,19 +256,30 @@ export class NoteCreateService implements OnApplicationShutdown {
 			}
 		}
 
-		// Renote対象が「ホームまたは全体」以外の公開範囲ならreject
-		if (data.renote && data.renote.visibility !== 'public' && data.renote.visibility !== 'home' && data.renote.userId !== user.id) {
-			throw new Error('Renote target is not public or home');
-		}
+		if (data.renote) {
+			switch (data.renote.visibility) {
+				case 'public':
+					// public noteは無条件にrenote可能
+					break;
+				case 'home':
+					// home noteはhome以下にrenote可能
+					if (data.visibility === 'public') {
+						data.visibility = 'home';
+					}
+					break;
+				case 'followers':
+					// 他人のfollowers noteはreject
+					if (data.renote.userId !== user.id) {
+						throw new Error('Renote target is not public or home');
+					}
 
-		// Renote対象がpublicではないならhomeにする
-		if (data.renote && data.renote.visibility !== 'public' && data.visibility === 'public') {
-			data.visibility = 'home';
-		}
-
-		// Renote対象がfollowersならfollowersにする
-		if (data.renote && data.renote.visibility === 'followers') {
-			data.visibility = 'followers';
+					// Renote対象がfollowersならfollowersにする
+					data.visibility = 'followers';
+					break;
+				case 'specified':
+					// specified / direct noteはreject
+					throw new Error('Renote target is not public or home');
+			}
 		}
 
 		// 返信対象がpublicではないならhomeにする
@@ -333,14 +348,6 @@ export class NoteCreateService implements OnApplicationShutdown {
 		}
 
 		const note = await this.insertNote(user, data, tags, emojis, mentionedUsers);
-
-		if (data.channel) {
-			this.redisForTimelines.xadd(
-				`channelTimeline:${data.channel.id}`,
-				'MAXLEN', '~', this.config.perChannelMaxNoteCacheCount.toString(),
-				'*',
-				'note', note.id);
-		}
 
 		setImmediate('post created', { signal: this.#shutdownController.signal }).then(
 			() => this.postNoteCreated(note, user, data, silent, tags!, mentionedUsers!),
@@ -481,13 +488,7 @@ export class NoteCreateService implements OnApplicationShutdown {
 		// Increment notes count (user)
 		this.incNotesCountOfUser(user);
 
-		if (data.visibility === 'public' || data.visibility === 'home') {
-			this.pushToTl(note, user);
-		} else if (data.visibility === 'followers') {
-			this.pushToTl(note, user);
-		} else if (data.visibility === 'specified') {
-			// TODO
-		}
+		this.pushToTl(note, user);
 
 		this.antennaService.addNoteToAntennas(note, user);
 
@@ -510,9 +511,8 @@ export class NoteCreateService implements OnApplicationShutdown {
 			});
 		}
 
-		// この投稿を除く指定したユーザーによる指定したノートのリノートが存在しないとき
-		if (data.renote && (await this.noteEntityService.countSameRenotes(user.id, data.renote.id, note.id) === 0)) {
-			if (!user.isBot) this.incRenoteCount(data.renote);
+		if (data.renote && data.renote.userId !== user.id && !user.isBot) {
+			this.incRenoteCount(data.renote);
 		}
 
 		if (data.poll && data.poll.expiresAt) {
@@ -712,10 +712,23 @@ export class NoteCreateService implements OnApplicationShutdown {
 		this.notesRepository.createQueryBuilder().update()
 			.set({
 				renoteCount: () => '"renoteCount" + 1',
-				score: () => '"score" + 1',
 			})
 			.where('id = :id', { id: renote.id })
 			.execute();
+
+		// 30%の確率、3日以内に投稿されたノートの場合ハイライト用ランキング更新
+		if (Math.random() < 0.3 && (Date.now() - this.idService.parse(renote.id).date.getTime()) < 1000 * 60 * 60 * 24 * 3) {
+			if (renote.channelId != null) {
+				if (renote.replyId == null) {
+					this.featuredService.updateInChannelNotesRanking(renote.channelId, renote.id, 5);
+				}
+			} else {
+				if (renote.visibility === 'public' && renote.userHost == null && renote.replyId == null) {
+					this.featuredService.updateGlobalNotesRanking(renote.id, 5);
+					this.featuredService.updatePerUserNotesRanking(renote.userId, renote.id, 5);
+				}
+			}
+		}
 	}
 
 	@bindThis
@@ -805,9 +818,13 @@ export class NoteCreateService implements OnApplicationShutdown {
 	private async pushToTl(note: MiNote, user: { id: MiUser['id']; host: MiUser['host']; }) {
 		const meta = await this.metaService.fetch();
 
-		const redisPipeline = this.redisForTimelines.pipeline();
+		const r = this.redisForTimelines.pipeline();
 
 		if (note.channelId) {
+			this.redisTimelineService.push(`channelTimeline:${note.channelId}`, note.id, this.config.perChannelMaxNoteCacheCount, r);
+
+			this.redisTimelineService.push(`userTimelineWithChannel:${user.id}`, note.id, note.userHost == null ? meta.perLocalUserUserTimelineCacheMax : meta.perRemoteUserUserTimelineCacheMax, r);
+
 			const channelFollowings = await this.channelFollowingsRepository.find({
 				where: {
 					followeeId: note.channelId,
@@ -816,140 +833,90 @@ export class NoteCreateService implements OnApplicationShutdown {
 			});
 
 			for (const channelFollowing of channelFollowings) {
-				redisPipeline.xadd(
-					`homeTimeline:${channelFollowing.followerId}`,
-					'MAXLEN', '~', meta.perUserHomeTimelineCacheMax.toString(),
-					'*',
-					'note', note.id);
-
+				this.redisTimelineService.push(`homeTimeline:${channelFollowing.followerId}`, note.id, meta.perUserHomeTimelineCacheMax, r);
 				if (note.fileIds.length > 0) {
-					redisPipeline.xadd(
-						`homeTimelineWithFiles:${channelFollowing.followerId}`,
-						'MAXLEN', '~', (meta.perUserHomeTimelineCacheMax / 2).toString(),
-						'*',
-						'note', note.id);
+					this.redisTimelineService.push(`homeTimelineWithFiles:${channelFollowing.followerId}`, note.id, meta.perUserHomeTimelineCacheMax / 2, r);
 				}
 			}
 		} else {
 			// TODO: キャッシュ？
-			const followings = await this.followingsRepository.find({
-				where: {
-					followeeId: user.id,
-					followerHost: IsNull(),
-					isFollowerHibernated: false,
-				},
-				select: ['followerId', 'withReplies'],
-			});
+			// eslint-disable-next-line prefer-const
+			let [followings, userListMemberships] = await Promise.all([
+				this.followingsRepository.find({
+					where: {
+						followeeId: user.id,
+						followerHost: IsNull(),
+						isFollowerHibernated: false,
+					},
+					select: ['followerId', 'withReplies'],
+				}),
+				this.userListMembershipsRepository.find({
+					where: {
+						userId: user.id,
+					},
+					select: ['userListId', 'userListUserId', 'withReplies'],
+				}),
+			]);
 
-			const userListMemberships = await this.userListMembershipsRepository.find({
-				where: {
-					userId: user.id,
-				},
-				select: ['userListId', 'withReplies'],
-			});
+			if (note.visibility === 'followers') {
+				// TODO: 重そうだから何とかしたい Set 使う？
+				userListMemberships = userListMemberships.filter(x => followings.some(f => f.followerId === x.userListUserId));
+			}
 
 			// TODO: あまりにも数が多いと redisPipeline.exec に失敗する(理由は不明)ため、3万件程度を目安に分割して実行するようにする
 			for (const following of followings) {
+				// 基本的にvisibleUserIdsには自身のidが含まれている前提であること
+				if (note.visibility === 'specified' && !note.visibleUserIds.some(v => v === following.followerId)) continue;
+
 				// 自分自身以外への返信
 				if (note.replyId && note.replyUserId !== note.userId) {
 					if (!following.withReplies) continue;
 				}
 
-				redisPipeline.xadd(
-					`homeTimeline:${following.followerId}`,
-					'MAXLEN', '~', meta.perUserHomeTimelineCacheMax.toString(),
-					'*',
-					'note', note.id);
-
+				this.redisTimelineService.push(`homeTimeline:${following.followerId}`, note.id, meta.perUserHomeTimelineCacheMax, r);
 				if (note.fileIds.length > 0) {
-					redisPipeline.xadd(
-						`homeTimelineWithFiles:${following.followerId}`,
-						'MAXLEN', '~', (meta.perUserHomeTimelineCacheMax / 2).toString(),
-						'*',
-						'note', note.id);
+					this.redisTimelineService.push(`homeTimelineWithFiles:${following.followerId}`, note.id, meta.perUserHomeTimelineCacheMax / 2, r);
 				}
 			}
 
-			// TODO
-			//if (note.visibility === 'followers') {
-			//	// TODO: 重そうだから何とかしたい Set 使う？
-			//	userLists = userLists.filter(x => followings.some(f => f.followerId === x.userListUserId));
-			//}
-
 			for (const userListMembership of userListMemberships) {
+				// ダイレクトのとき、そのリストが対象外のユーザーの場合
+				if (
+					note.visibility === 'specified' &&
+					!note.visibleUserIds.some(v => v === userListMembership.userListUserId)
+				) continue;
+
 				// 自分自身以外への返信
 				if (note.replyId && note.replyUserId !== note.userId) {
 					if (!userListMembership.withReplies) continue;
 				}
 
-				redisPipeline.xadd(
-					`userListTimeline:${userListMembership.userListId}`,
-					'MAXLEN', '~', meta.perUserListTimelineCacheMax.toString(),
-					'*',
-					'note', note.id);
-
+				this.redisTimelineService.push(`userListTimeline:${userListMembership.userListId}`, note.id, meta.perUserListTimelineCacheMax, r);
 				if (note.fileIds.length > 0) {
-					redisPipeline.xadd(
-						`userListTimelineWithFiles:${userListMembership.userListId}`,
-						'MAXLEN', '~', (meta.perUserListTimelineCacheMax / 2).toString(),
-						'*',
-						'note', note.id);
+					this.redisTimelineService.push(`userListTimelineWithFiles:${userListMembership.userListId}`, note.id, meta.perUserListTimelineCacheMax / 2, r);
 				}
 			}
 
-			{ // 自分自身のHTL
-				redisPipeline.xadd(
-					`homeTimeline:${user.id}`,
-					'MAXLEN', '~', meta.perUserHomeTimelineCacheMax.toString(),
-					'*',
-					'note', note.id);
-
+			if (note.visibility !== 'specified' || !note.visibleUserIds.some(v => v === user.id)) { // 自分自身のHTL
+				this.redisTimelineService.push(`homeTimeline:${user.id}`, note.id, meta.perUserHomeTimelineCacheMax, r);
 				if (note.fileIds.length > 0) {
-					redisPipeline.xadd(
-						`homeTimelineWithFiles:${user.id}`,
-						'MAXLEN', '~', (meta.perUserHomeTimelineCacheMax / 2).toString(),
-						'*',
-						'note', note.id);
+					this.redisTimelineService.push(`homeTimelineWithFiles:${user.id}`, note.id, meta.perUserHomeTimelineCacheMax / 2, r);
 				}
 			}
 
-			if (note.visibility === 'public' || note.visibility === 'home') {
-				// 自分自身以外への返信
-				if (note.replyId && note.replyUserId !== note.userId) {
-					redisPipeline.xadd(
-						`userTimelineWithReplies:${user.id}`,
-						'MAXLEN', '~', note.userHost == null ? meta.perLocalUserUserTimelineCacheMax.toString() : meta.perRemoteUserUserTimelineCacheMax.toString(),
-						'*',
-						'note', note.id);
-				} else {
-					redisPipeline.xadd(
-						`userTimeline:${user.id}`,
-						'MAXLEN', '~', note.userHost == null ? meta.perLocalUserUserTimelineCacheMax.toString() : meta.perRemoteUserUserTimelineCacheMax.toString(),
-						'*',
-						'note', note.id);
+			// 自分自身以外への返信
+			if (note.replyId && note.replyUserId !== note.userId) {
+				this.redisTimelineService.push(`userTimelineWithReplies:${user.id}`, note.id, note.userHost == null ? meta.perLocalUserUserTimelineCacheMax : meta.perRemoteUserUserTimelineCacheMax, r);
+			} else {
+				this.redisTimelineService.push(`userTimeline:${user.id}`, note.id, note.userHost == null ? meta.perLocalUserUserTimelineCacheMax : meta.perRemoteUserUserTimelineCacheMax, r);
+				if (note.fileIds.length > 0) {
+					this.redisTimelineService.push(`userTimelineWithFiles:${user.id}`, note.id, note.userHost == null ? meta.perLocalUserUserTimelineCacheMax / 2 : meta.perRemoteUserUserTimelineCacheMax / 2, r);
+				}
 
+				if (note.visibility === 'public' && note.userHost == null) {
+					this.redisTimelineService.push('localTimeline', note.id, 1000, r);
 					if (note.fileIds.length > 0) {
-						redisPipeline.xadd(
-							`userTimelineWithFiles:${user.id}`,
-							'MAXLEN', '~', note.userHost == null ? (meta.perLocalUserUserTimelineCacheMax / 2).toString() : (meta.perRemoteUserUserTimelineCacheMax / 2).toString(),
-							'*',
-							'note', note.id);
-					}
-
-					if (note.visibility === 'public' && note.userHost == null) {
-						redisPipeline.xadd(
-							'localTimeline',
-							'MAXLEN', '~', '1000',
-							'*',
-							'note', note.id);
-
-						if (note.fileIds.length > 0) {
-							redisPipeline.xadd(
-								'localTimelineWithFiles',
-								'MAXLEN', '~', '500',
-								'*',
-								'note', note.id);
-						}
+						this.redisTimelineService.push('localTimelineWithFiles', note.id, 500, r);
 					}
 				}
 			}
@@ -961,7 +928,7 @@ export class NoteCreateService implements OnApplicationShutdown {
 			}
 		}
 
-		redisPipeline.exec();
+		r.exec();
 	}
 
 	@bindThis
