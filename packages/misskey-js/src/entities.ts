@@ -12,10 +12,16 @@ export type UserLite = {
 	id: ID;
 	username: string;
 	host: string | null;
-	name: string;
+	name: string | null;
 	onlineStatus: 'online' | 'active' | 'offline' | 'unknown';
 	avatarUrl: string;
 	avatarBlurhash: string;
+	avatarDecorations: {
+		id: ID;
+		url: string;
+		angle?: number;
+		flipH?: boolean;
+	}[];
 	emojis: {
 		name: string;
 		url: string;
@@ -28,6 +34,8 @@ export type UserLite = {
 		faviconUrl: Instance['faviconUrl'];
 		themeColor: Instance['themeColor'];
 	};
+	isCat?: boolean;
+	isBot?: boolean;
 };
 
 export type UserDetailed = UserLite & {
@@ -385,6 +393,7 @@ export type InstanceMetadata = LiteInstanceMetadata | DetailedInstanceMetadata;
 export type AdminInstanceMetadata = DetailedInstanceMetadata & {
 	// TODO: There are more fields.
 	blockedHosts: string[];
+	silencedHosts: string[];
 	app192IconUrl: string | null;
 	app512IconUrl: string | null;
 	manifestJsonOverride: string;
@@ -470,6 +479,7 @@ export type Antenna = {
 	userGroupId: ID | null; // TODO
 	users: string[]; // TODO
 	caseSensitive: boolean;
+	localOnly: boolean;
 	notify: boolean;
 	withReplies: boolean;
 	withFile: boolean;
@@ -544,6 +554,7 @@ export type Instance = {
 	lastCommunicatedAt: DateString;
 	isNotResponding: boolean;
 	isSuspended: boolean;
+	isSilenced: boolean;
 	isBlocked: boolean;
 	softwareName: string | null;
 	softwareVersion: string | null;
@@ -688,4 +699,16 @@ export type ModerationLog = {
 } | {
 	type: 'deleteAd';
 	info: ModerationLogPayloads['deleteAd'];
+} | {
+	type: 'createAvatarDecoration';
+	info: ModerationLogPayloads['createAvatarDecoration'];
+} | {
+	type: 'updateAvatarDecoration';
+	info: ModerationLogPayloads['updateAvatarDecoration'];
+} | {
+	type: 'deleteAvatarDecoration';
+	info: ModerationLogPayloads['deleteAvatarDecoration'];
+} | {
+	type: 'resolveAbuseReport';
+	info: ModerationLogPayloads['resolveAbuseReport'];
 });
