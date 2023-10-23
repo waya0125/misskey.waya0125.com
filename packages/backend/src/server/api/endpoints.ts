@@ -18,6 +18,10 @@ import * as ep___admin_announcements_create from './endpoints/admin/announcement
 import * as ep___admin_announcements_delete from './endpoints/admin/announcements/delete.js';
 import * as ep___admin_announcements_list from './endpoints/admin/announcements/list.js';
 import * as ep___admin_announcements_update from './endpoints/admin/announcements/update.js';
+import * as ep___admin_avatarDecorations_create from './endpoints/admin/avatar-decorations/create.js';
+import * as ep___admin_avatarDecorations_delete from './endpoints/admin/avatar-decorations/delete.js';
+import * as ep___admin_avatarDecorations_list from './endpoints/admin/avatar-decorations/list.js';
+import * as ep___admin_avatarDecorations_update from './endpoints/admin/avatar-decorations/update.js';
 import * as ep___admin_deleteAllFilesOfAUser from './endpoints/admin/delete-all-files-of-a-user.js';
 import * as ep___admin_drive_cleanRemoteFiles from './endpoints/admin/drive/clean-remote-files.js';
 import * as ep___admin_drive_cleanup from './endpoints/admin/drive/cleanup.js';
@@ -161,6 +165,7 @@ import * as ep___federation_stats from './endpoints/federation/stats.js';
 import * as ep___following_create from './endpoints/following/create.js';
 import * as ep___following_delete from './endpoints/following/delete.js';
 import * as ep___following_update from './endpoints/following/update.js';
+import * as ep___following_update_all from './endpoints/following/update-all.js';
 import * as ep___following_invalidate from './endpoints/following/invalidate.js';
 import * as ep___following_requests_accept from './endpoints/following/requests/accept.js';
 import * as ep___following_requests_cancel from './endpoints/following/requests/cancel.js';
@@ -176,6 +181,7 @@ import * as ep___gallery_posts_show from './endpoints/gallery/posts/show.js';
 import * as ep___gallery_posts_unlike from './endpoints/gallery/posts/unlike.js';
 import * as ep___gallery_posts_update from './endpoints/gallery/posts/update.js';
 import * as ep___getOnlineUsersCount from './endpoints/get-online-users-count.js';
+import * as ep___getAvatarDecorations from './endpoints/get-avatar-decorations.js';
 import * as ep___hashtags_list from './endpoints/hashtags/list.js';
 import * as ep___hashtags_search from './endpoints/hashtags/search.js';
 import * as ep___hashtags_show from './endpoints/hashtags/show.js';
@@ -257,7 +263,6 @@ import * as ep___notes_clips from './endpoints/notes/clips.js';
 import * as ep___notes_conversation from './endpoints/notes/conversation.js';
 import * as ep___notes_create from './endpoints/notes/create.js';
 import * as ep___notes_delete from './endpoints/notes/delete.js';
-import * as ep___notes_update from './endpoints/notes/update.js';
 import * as ep___notes_favorites_create from './endpoints/notes/favorites/create.js';
 import * as ep___notes_favorites_delete from './endpoints/notes/favorites/delete.js';
 import * as ep___notes_featured from './endpoints/notes/featured.js';
@@ -326,6 +331,7 @@ import * as ep___users_followers from './endpoints/users/followers.js';
 import * as ep___users_following from './endpoints/users/following.js';
 import * as ep___users_gallery_posts from './endpoints/users/gallery/posts.js';
 import * as ep___users_getFrequentlyRepliedUsers from './endpoints/users/get-frequently-replied-users.js';
+import * as ep___users_featuredNotes from './endpoints/users/featured-notes.js';
 import * as ep___users_lists_create from './endpoints/users/lists/create.js';
 import * as ep___users_lists_delete from './endpoints/users/lists/delete.js';
 import * as ep___users_lists_list from './endpoints/users/lists/list.js';
@@ -351,6 +357,7 @@ import * as ep___users_show from './endpoints/users/show.js';
 import * as ep___users_achievements from './endpoints/users/achievements.js';
 import * as ep___users_updateMemo from './endpoints/users/update-memo.js';
 import * as ep___fetchRss from './endpoints/fetch-rss.js';
+import * as ep___fetchExternalResources from './endpoints/fetch-external-resources.js';
 import * as ep___retention from './endpoints/retention.js';
 
 const eps = [
@@ -366,6 +373,10 @@ const eps = [
 	['admin/announcements/delete', ep___admin_announcements_delete],
 	['admin/announcements/list', ep___admin_announcements_list],
 	['admin/announcements/update', ep___admin_announcements_update],
+	['admin/avatar-decorations/create', ep___admin_avatarDecorations_create],
+	['admin/avatar-decorations/delete', ep___admin_avatarDecorations_delete],
+	['admin/avatar-decorations/list', ep___admin_avatarDecorations_list],
+	['admin/avatar-decorations/update', ep___admin_avatarDecorations_update],
 	['admin/delete-all-files-of-a-user', ep___admin_deleteAllFilesOfAUser],
 	['admin/drive/clean-remote-files', ep___admin_drive_cleanRemoteFiles],
 	['admin/drive/cleanup', ep___admin_drive_cleanup],
@@ -509,6 +520,7 @@ const eps = [
 	['following/create', ep___following_create],
 	['following/delete', ep___following_delete],
 	['following/update', ep___following_update],
+	['following/update-all', ep___following_update_all],
 	['following/invalidate', ep___following_invalidate],
 	['following/requests/accept', ep___following_requests_accept],
 	['following/requests/cancel', ep___following_requests_cancel],
@@ -524,6 +536,7 @@ const eps = [
 	['gallery/posts/unlike', ep___gallery_posts_unlike],
 	['gallery/posts/update', ep___gallery_posts_update],
 	['get-online-users-count', ep___getOnlineUsersCount],
+	['get-avatar-decorations', ep___getAvatarDecorations],
 	['hashtags/list', ep___hashtags_list],
 	['hashtags/search', ep___hashtags_search],
 	['hashtags/show', ep___hashtags_show],
@@ -605,7 +618,6 @@ const eps = [
 	['notes/conversation', ep___notes_conversation],
 	['notes/create', ep___notes_create],
 	['notes/delete', ep___notes_delete],
-	['notes/update', ep___notes_update],
 	['notes/favorites/create', ep___notes_favorites_create],
 	['notes/favorites/delete', ep___notes_favorites_delete],
 	['notes/featured', ep___notes_featured],
@@ -674,6 +686,7 @@ const eps = [
 	['users/following', ep___users_following],
 	['users/gallery/posts', ep___users_gallery_posts],
 	['users/get-frequently-replied-users', ep___users_getFrequentlyRepliedUsers],
+	['users/featured-notes', ep___users_featuredNotes],
 	['users/lists/create', ep___users_lists_create],
 	['users/lists/delete', ep___users_lists_delete],
 	['users/lists/list', ep___users_lists_list],
@@ -699,6 +712,7 @@ const eps = [
 	['users/achievements', ep___users_achievements],
 	['users/update-memo', ep___users_updateMemo],
 	['fetch-rss', ep___fetchRss],
+	['fetch-external-resources', ep___fetchExternalResources],
 	['retention', ep___retention],
 ];
 

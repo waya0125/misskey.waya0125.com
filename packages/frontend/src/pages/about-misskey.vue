@@ -187,6 +187,12 @@ const patronsWithIcon = [{
 }, {
 	name: 'フランギ・シュウ',
 	icon: 'https://misskey-hub.net/patrons/3016d37e35f3430b90420176c912d304.jpg',
+}, {
+	name: '百日紅',
+	icon: 'https://misskey-hub.net/patrons/302dce2898dd457ba03c3f7dc037900b.jpg',
+}, {
+	name: 'taichan',
+	icon: 'https://misskey-hub.net/patrons/f981ab0159fb4e2c998e05f7263e1cd9.png',
 }];
 
 const patrons = [
@@ -288,6 +294,7 @@ const patrons = [
 	'美少女JKぐーちゃん',
 	'てば',
 	'たっくん',
+	'SHO SEKIGUCHI',
 ];
 
 let thereIsTreasure = $ref($i && !claimedAchievements.includes('foundTreasure'));

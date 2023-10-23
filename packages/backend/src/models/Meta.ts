@@ -77,6 +77,11 @@ export class MiMeta {
 	public sensitiveWords: string[];
 
 	@Column('varchar', {
+		length: 1024, array: true, default: '{}',
+	})
+	public silencedHosts: string[];
+
+	@Column('varchar', {
 		length: 1024,
 		nullable: true,
 	})
@@ -336,6 +341,18 @@ export class MiMeta {
 	public feedbackUrl: string | null;
 
 	@Column('varchar', {
+		length: 1024,
+		nullable: true,
+	})
+	public impressumUrl: string | null;
+
+	@Column('varchar', {
+		length: 1024,
+		nullable: true,
+	})
+	public privacyPolicyUrl: string | null;
+
+	@Column('varchar', {
 		length: 8192,
 		nullable: true,
 	})
@@ -472,6 +489,11 @@ export class MiMeta {
 	})
 	public preservedUsernames: string[];
 
+	@Column('boolean', {
+		default: true,
+	})
+	public enableFanoutTimeline: boolean;
+
 	@Column('integer', {
 		default: 300,
 	})
@@ -491,4 +513,9 @@ export class MiMeta {
 		default: 300,
 	})
 	public perUserListTimelineCacheMax: number;
+
+	@Column('integer', {
+		default: 0,
+	})
+	public notesPerOneAd: number;
 }
