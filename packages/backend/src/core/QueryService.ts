@@ -192,7 +192,7 @@ export class QueryService {
 		// This code must always be synchronized with the checks in Notes.isVisibleForMe.
 		if (me == null) {
 			q.andWhere(new Brackets(qb => { qb
-				.where('note.localOnly = \'false\'')
+				.where('note.localOnly = FALSE')
 				.andWhere(new Brackets(qb => { qb
 					.where('note.visibility = \'public\'')
 					.orWhere('note.visibility = \'home\'');
