@@ -76,6 +76,12 @@ export class NoteEntityService implements OnModuleInit {
 		// TODO: isVisibleForMe を使うようにしても良さそう(型違うけど)
 		let hide = false;
 
+		if (packedNote.localOnly) {
+			if (meId == null) {
+				hide = true;
+			}
+		}
+
 		// visibility が specified かつ自分が指定されていなかったら非表示
 		if (packedNote.visibility === 'specified') {
 			if (meId == null) {
