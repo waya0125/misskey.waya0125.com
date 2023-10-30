@@ -120,6 +120,7 @@ useTooltip(buttonEl, async (showing) => {
 	padding: 0 6px;
 	font-size: 1.5em;
 	border-radius: 6px;
+  white-space: nowrap;
 
 	&.canToggle {
 		background: var(--buttonBg);
@@ -168,10 +169,6 @@ useTooltip(buttonEl, async (showing) => {
 			filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
 		}
 	}
-}
-
-.icon {
-	max-width: 150px;
 }
 
 .count {
