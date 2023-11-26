@@ -145,6 +145,7 @@ if (!mock) {
 	padding: 0 6px;
 	font-size: 1.5em;
 	border-radius: 6px;
+  white-space: nowrap;
 
 	&.canToggle {
 		background: var(--buttonBg);

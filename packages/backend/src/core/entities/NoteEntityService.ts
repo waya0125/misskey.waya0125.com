@@ -76,6 +76,12 @@ export class NoteEntityService implements OnModuleInit {
 		// TODO: isVisibleForMe を使うようにしても良さそう(型違うけど)
 		let hide = false;
 
+		if (packedNote.localOnly) {
+			if (meId == null) {
+				hide = true;
+			}
+		}
+
 		// visibility が specified かつ自分が指定されていなかったら非表示
 		if (packedNote.visibility === 'specified') {
 			if (meId == null) {
@@ -214,6 +220,12 @@ export class NoteEntityService implements OnModuleInit {
 	public async isVisibleForMe(note: MiNote, meId: MiUser['id'] | null): Promise<boolean> {
 		// This code must always be synchronized with the checks in generateVisibilityQuery.
 		// visibility が specified かつ自分が指定されていなかったら非表示
+		if (note.localOnly) {
+			if (meId == null) {
+				return false;
+			}
+		}
+
 		if (note.visibility === 'specified') {
 			if (meId == null) {
 				return false;

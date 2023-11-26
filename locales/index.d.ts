@@ -2390,6 +2390,14 @@ export interface Locale {
             "mention": string;
         };
     };
+    "_imageCompressionMode": {
+        "title": string;
+        "description": string;
+        "resizeCompress": string;
+        "noResizeCompress": string;
+        "resizeCompressLossy": string;
+        "noResizeCompressLossy": string;
+    };
     "_moderationLogTypes": {
         "createRole": string;
         "deleteRole": string;

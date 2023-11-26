@@ -54,7 +54,7 @@ import { i18n } from '@/i18n.js';
 
 const SECOND_FETCH_LIMIT = 30;
 const TOLERANCE = 16;
-const APPEAR_MINIMUM_INTERVAL = 600;
+const APPEAR_MINIMUM_INTERVAL = 100;
 
 export type Paging<E extends keyof Misskey.Endpoints = keyof Misskey.Endpoints> = {
 	endpoint: E;

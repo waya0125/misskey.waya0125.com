@@ -44,6 +44,14 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<template #label>{{ i18n.ts.keepOriginalUploading }}</template>
 				<template #caption>{{ i18n.ts.keepOriginalUploadingDescription }}</template>
 			</MkSwitch>
+			<MkSelect v-model="imageCompressionMode">
+				<template #label>{{ i18n.ts._imageCompressionMode.title }}</template>
+				<option value="resizeCompress">{{ i18n.ts._imageCompressionMode.resizeCompress }}</option>
+				<option value="noResizeCompress">{{ i18n.ts._imageCompressionMode.noResizeCompress }}</option>
+				<option value="resizeCompressLossy">{{ i18n.ts._imageCompressionMode.resizeCompressLossy }}</option>
+				<option value="noResizeCompressLossy">{{ i18n.ts._imageCompressionMode.noResizeCompressLossy }}</option>
+				<template #caption>{{ i18n.ts._imageCompressionMode.description }}</template>
+			</MkSelect>
 			<MkSwitch v-model="alwaysMarkNsfw" @update:modelValue="saveProfile()">
 				<template #label>{{ i18n.ts.alwaysMarkSensitive }}</template>
 			</MkSwitch>
@@ -91,6 +99,7 @@ const meterStyle = computed(() => {
 });
 
 const keepOriginalUploading = computed(defaultStore.makeGetterSetter('keepOriginalUploading'));
+const imageCompressionMode = computed(defaultStore.makeGetterSetter('imageCompressionMode'));
 
 os.api('drive').then(info => {
 	capacity.value = info.capacity;

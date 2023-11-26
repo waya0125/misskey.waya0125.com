@@ -191,10 +191,12 @@ export class QueryService {
 	public generateVisibilityQuery(q: SelectQueryBuilder<any>, me?: { id: MiUser['id'] } | null): void {
 		// This code must always be synchronized with the checks in Notes.isVisibleForMe.
 		if (me == null) {
-			q.andWhere(new Brackets(qb => {
-				qb
+			q.andWhere(new Brackets(qb => { qb
+				.where('note.localOnly = FALSE')
+				.andWhere(new Brackets(qb => { qb
 					.where('note.visibility = \'public\'')
 					.orWhere('note.visibility = \'home\'');
+				}));
 			}));
 		} else {
 			const followingQuery = this.followingsRepository.createQueryBuilder('following')

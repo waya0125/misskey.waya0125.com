@@ -10,18 +10,23 @@ const koRegex1 = /[나-낳]/g;
 const koRegex2 = /(다$)|(다(?=\.))|(다(?= ))|(다(?=!))|(다(?=\?))/gm;
 const koRegex3 = /(야(?=\?))|(야$)|(야(?= ))/gm;
 
+// このコードは源流であるMisskey-devとは異なります。このコードはOdekakeyによって作成されました。
 export function nyaize(text: string): string {
+	// ja-JP
 	return text
-		// ja-JP
-		.replaceAll('な', 'にゃ').replaceAll('ナ', 'ニャ').replaceAll('ﾅ', 'ﾆｬ')
-		// en-US
-		.replace(enRegex1, x => x === 'A' ? 'YA' : 'ya')
-		.replace(enRegex2, x => x === 'ING' ? 'YAN' : 'yan')
-		.replace(enRegex3, x => x === 'ONE' ? 'NYAN' : 'nyan')
-		// ko-KR
-		.replace(koRegex1, match => String.fromCharCode(
+		.replaceAll('な', 'にゃ')
+		.replaceAll('ナ', 'ニャ')
+		.replaceAll('ﾅ', 'ﾆｬ')
+
+	// en-US
+		.replace(/na/gi, x => x === 'NA' ? 'NYA' : 'nya')
+		.replace(/(morn)(ing)/gi, (_, morn, ing) => morn + (ing === 'ING' ? 'YAN' : 'yan'))
+		.replace(/(every)(one)/gi, (_, every, one) => every + (one === 'ONE' ? 'NYAN' : 'nyan'))
+
+	// ko-KR
+		.replace(/[나-낳]/g, match => String.fromCharCode(
 			match.charCodeAt(0)! + '냐'.charCodeAt(0) - '나'.charCodeAt(0),
 		))
-		.replace(koRegex2, '다냥')
-		.replace(koRegex3, '냥');
+		.replace(/다[\. ]|다$|다!|다\?/gm, '다냥')
+		.replace(/야[ ?]|야$/gm, '냥');
 }

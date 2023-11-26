@@ -96,7 +96,8 @@ const selectedEmojis = ref<string[]>([]);
 
 const pagination = {
 	endpoint: 'admin/emoji/list' as const,
-	limit: 30,
+	limit: 100,
+	displayLimit: 500,
 	params: computed(() => ({
 		query: (query.value && query.value !== '') ? query.value : null,
 	})),
@@ -104,7 +105,8 @@ const pagination = {
 
 const remotePagination = {
 	endpoint: 'admin/emoji/list-remote' as const,
-	limit: 30,
+	limit: 100,
+	displayLimit: 500,
 	params: computed(() => ({
 		query: (queryRemote.value && queryRemote.value !== '') ? queryRemote.value : null,
 		host: (host.value && host.value !== '') ? host.value : null,
@@ -136,6 +138,18 @@ const add = async (ev: MouseEvent) => {
 			}
 		},
 	}, 'closed');
+};
+
+const addAll = async (ev: MouseEvent) => {
+	const files = await selectFiles(ev.currentTarget ?? ev.target, null);
+
+	const promise = Promise.all(files.map(file => os.api('admin/emoji/add', {
+		fileId: file.id,
+	})));
+	promise.then(() => {
+		emojisPaginationComponent.value.reload();
+	});
+	os.promiseDialog(promise);
 };
 
 const edit = (emoji) => {
@@ -291,6 +305,11 @@ const headerActions = $computed(() => [{
 	icon: 'ti ti-plus',
 	text: i18n.ts.addEmoji,
 	handler: add,
+}, {
+	asFullButton: true,
+	icon: 'ti ti-files',
+	text: i18n.ts.addEmoji,
+	handler: addAll,
 }, {
 	icon: 'ti ti-dots',
 	handler: menu,
