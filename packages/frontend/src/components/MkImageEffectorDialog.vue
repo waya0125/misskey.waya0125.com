@@ -19,9 +19,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<div :class="$style.root">
 		<div :class="$style.container">
 			<div :class="$style.preview">
-				<canvas ref="canvasEl" :class="$style.previewCanvas"></canvas>
+				<canvas ref="canvasEl" :class="$style.previewCanvas" @pointerdown="onImagePointerdown"></canvas>
 				<div :class="$style.previewContainer">
 					<div class="_acrylic" :class="$style.previewTitle">{{ i18n.ts.preview }}</div>
+					<div class="_acrylic" :class="$style.editControls">
+						<button class="_button" :class="[$style.previewControlsButton, penMode != null ? $style.active : null]" @click="showPenMenu"><i class="ti ti-pencil"></i></button>
+					</div>
 					<div class="_acrylic" :class="$style.previewControls">
 						<button class="_button" :class="[$style.previewControlsButton, !enabled ? $style.active : null]" @click="enabled = false">Before</button>
 						<button class="_button" :class="[$style.previewControlsButton, enabled ? $style.active : null]" @click="enabled = true">After</button>
@@ -77,6 +80,7 @@ const dialog = useTemplateRef('dialog');
 async function cancel() {
 	if (layers.length > 0) {
 		const { canceled } = await os.confirm({
+			type: 'warning',
 			text: i18n.ts._imageEffector.discardChangesConfirm,
 		});
 		if (canceled) return;
@@ -95,7 +99,7 @@ watch(layers, async () => {
 }, { deep: true });
 
 function addEffect(ev: MouseEvent) {
-	os.popupMenu(FXS.filter(fx => fx.id !== 'watermarkPlacement').map((fx) => ({
+	os.popupMenu(FXS.map((fx) => ({
 		text: fx.name,
 		action: () => {
 			layers.push({
@@ -132,7 +136,7 @@ function onLayerDelete(layer: ImageEffectorLayer) {
 
 const canvasEl = useTemplateRef('canvasEl');
 
-let renderer: ImageEffector | null = null;
+let renderer: ImageEffector<typeof FXS> | null = null;
 let imageBitmap: ImageBitmap | null = null;
 
 onMounted(async () => {
@@ -211,6 +215,129 @@ watch(enabled, () => {
 		renderer.render();
 	}
 });
+
+const penMode = ref<'fill' | 'blur' | null>(null);
+
+function showPenMenu(ev: MouseEvent) {
+	os.popupMenu([{
+		text: i18n.ts._imageEffector._fxs.fill,
+		action: () => {
+			penMode.value = 'fill';
+		},
+	}, {
+		text: i18n.ts._imageEffector._fxs.blur,
+		action: () => {
+			penMode.value = 'blur';
+		},
+	}], ev.currentTarget ?? ev.target);
+}
+
+function onImagePointerdown(ev: PointerEvent) {
+	if (canvasEl.value == null || imageBitmap == null || penMode.value == null) return;
+
+	const AW = canvasEl.value.clientWidth;
+	const AH = canvasEl.value.clientHeight;
+	const BW = imageBitmap.width;
+	const BH = imageBitmap.height;
+
+	let xOffset = 0;
+	let yOffset = 0;
+
+	if (AW / AH < BW / BH) { // 横長
+		yOffset = AH - BH * (AW / BW);
+	} else { // 縦長
+		xOffset = AW - BW * (AH / BH);
+	}
+
+	xOffset /= 2;
+	yOffset /= 2;
+
+	let startX = ev.offsetX - xOffset;
+	let startY = ev.offsetY - yOffset;
+
+	if (AW / AH < BW / BH) { // 横長
+		startX = startX / (Math.max(AW, AH) / Math.max(BH / BW, 1));
+		startY = startY / (Math.max(AW, AH) / Math.max(BW / BH, 1));
+	} else { // 縦長
+		startX = startX / (Math.min(AW, AH) / Math.max(BH / BW, 1));
+		startY = startY / (Math.min(AW, AH) / Math.max(BW / BH, 1));
+	}
+
+	const id = genId();
+	if (penMode.value === 'fill') {
+		layers.push({
+			id,
+			fxId: 'fill',
+			params: {
+				offsetX: 0,
+				offsetY: 0,
+				scaleX: 0.1,
+				scaleY: 0.1,
+				angle: 0,
+				opacity: 1,
+				color: [1, 1, 1],
+			},
+		});
+	} else if (penMode.value === 'blur') {
+		layers.push({
+			id,
+			fxId: 'blur',
+			params: {
+				offsetX: 0,
+				offsetY: 0,
+				scaleX: 0.1,
+				scaleY: 0.1,
+				angle: 0,
+				radius: 3,
+			},
+		});
+	}
+
+	_move(ev.offsetX, ev.offsetY);
+
+	function _move(pointerX: number, pointerY: number) {
+		let x = pointerX - xOffset;
+		let y = pointerY - yOffset;
+
+		if (AW / AH < BW / BH) { // 横長
+			x = x / (Math.max(AW, AH) / Math.max(BH / BW, 1));
+			y = y / (Math.max(AW, AH) / Math.max(BW / BH, 1));
+		} else { // 縦長
+			x = x / (Math.min(AW, AH) / Math.max(BH / BW, 1));
+			y = y / (Math.min(AW, AH) / Math.max(BW / BH, 1));
+		}
+
+		const scaleX = Math.abs(x - startX);
+		const scaleY = Math.abs(y - startY);
+
+		const layerIndex = layers.findIndex((l) => l.id === id);
+		const layer = layerIndex !== -1 ? layers[layerIndex] : null;
+		if (layer != null) {
+			layer.params.offsetX = (x + startX) - 1;
+			layer.params.offsetY = (y + startY) - 1;
+			layer.params.scaleX = scaleX;
+			layer.params.scaleY = scaleY;
+			layers[layerIndex] = layer;
+		}
+	}
+
+	function move(ev: PointerEvent) {
+		_move(ev.offsetX, ev.offsetY);
+	}
+
+	function up() {
+		canvasEl.value?.removeEventListener('pointermove', move);
+		canvasEl.value?.removeEventListener('pointerup', up);
+		canvasEl.value?.removeEventListener('pointercancel', up);
+		canvasEl.value?.releasePointerCapture(ev.pointerId);
+
+		penMode.value = null;
+	}
+
+	canvasEl.value.addEventListener('pointermove', move);
+	canvasEl.value.addEventListener('pointerup', up);
+	canvasEl.value.setPointerCapture(ev.pointerId);
+}
 </script>
 
 <style module>
@@ -250,6 +377,18 @@ watch(enabled, () => {
 	font-size: 85%;
 }
 
+.editControls {
+	position: absolute;
+	z-index: 100;
+	bottom: 8px;
+	left: 8px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 10px;
+	border-radius: 6px;
+}
+
 .previewControls {
 	position: absolute;
 	z-index: 100;
@@ -282,9 +421,13 @@ watch(enabled, () => {
 	position: absolute;
 	top: 0;
 	left: 0;
-	width: 100%;
-	height: 100%;
-	padding: 20px;
+	/* なんかiOSでレンダリングがおかしい
+	width: stretch;
+	height: stretch;
+	*/
+	width: calc(100% - 40px);
+	height: calc(100% - 40px);
+	margin: 20px;
 	box-sizing: border-box;
 	object-fit: contain;
 }

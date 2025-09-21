@@ -3,12 +3,21 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-import { FX_watermarkPlacement } from './image-effector/fxs/watermarkPlacement.js';
-import { FX_stripe } from './image-effector/fxs/stripe.js';
-import { FX_polkadot } from './image-effector/fxs/polkadot.js';
-import { FX_checker } from './image-effector/fxs/checker.js';
-import type { ImageEffectorLayer } from '@/utility/image-effector/ImageEffector.js';
+import type { ImageEffectorFx, ImageEffectorLayer } from '@/utility/image-effector/ImageEffector.js';
+import { FX_watermarkPlacement } from '@/utility/image-effector/fxs/watermarkPlacement.js';
+import { FX_stripe } from '@/utility/image-effector/fxs/stripe.js';
+import { FX_polkadot } from '@/utility/image-effector/fxs/polkadot.js';
+import { FX_checker } from '@/utility/image-effector/fxs/checker.js';
 import { ImageEffector } from '@/utility/image-effector/ImageEffector.js';
+
+const WATERMARK_FXS = [
+	FX_watermarkPlacement,
+	FX_stripe,
+	FX_polkadot,
+	FX_checker,
+] as const satisfies ImageEffectorFx<string, any>[];
+
+type Align = { x: 'left' | 'center' | 'right'; y: 'top' | 'center' | 'bottom'; margin?: number; };
 
 export type WatermarkPreset = {
 	id: string;
@@ -20,7 +29,7 @@ export type WatermarkPreset = {
 		repeat: boolean;
 		scale: number;
 		angle: number;
-		align: { x: 'left' | 'center' | 'right'; y: 'top' | 'center' | 'bottom' };
+		align: Align;
 		opacity: number;
 	} | {
 		id: string;
@@ -31,7 +40,14 @@ export type WatermarkPreset = {
 		repeat: boolean;
 		scale: number;
 		angle: number;
-		align: { x: 'left' | 'center' | 'right'; y: 'top' | 'center' | 'bottom' };
+		align: Align;
+		opacity: number;
+	} | {
+		id: string;
+		type: 'qr';
+		data: string;
+		scale: number;
+		align: Align;
 		opacity: number;
 	} | {
 		id: string;
@@ -64,7 +80,7 @@ export type WatermarkPreset = {
 };
 
 export class WatermarkRenderer {
-	private effector: ImageEffector;
+	private effector: ImageEffector<typeof WATERMARK_FXS>;
 	private layers: WatermarkPreset['layers'] = [];
 
 	constructor(options: {
@@ -78,7 +94,7 @@ export class WatermarkRenderer {
 			renderWidth: options.renderWidth,
 			renderHeight: options.renderHeight,
 			image: options.image,
-			fxs: [FX_watermarkPlacement, FX_stripe, FX_polkadot, FX_checker],
+			fxs: WATERMARK_FXS,
 		});
 	}
 
@@ -118,6 +134,23 @@ export class WatermarkRenderer {
 						},
 					},
 				};
+			} else if (layer.type === 'qr') {
+				return {
+					fxId: 'watermarkPlacement',
+					id: layer.id,
+					params: {
+						repeat: false,
+						scale: layer.scale,
+						align: layer.align,
+						angle: 0,
+						opacity: layer.opacity,
+						cover: false,
+						watermark: {
+							type: 'qr',
+							data: layer.data,
+						},
+					},
+				};
 			} else if (layer.type === 'stripe') {
 				return {
 					fxId: 'stripe',
@@ -143,7 +176,6 @@ export class WatermarkRenderer {
 						minorRadius: layer.minorRadius,
 						minorOpacity: layer.minorOpacity,
 						color: layer.color,
-						opacity: layer.opacity,
 					},
 				};
 			} else if (layer.type === 'checker') {
@@ -157,6 +189,8 @@ export class WatermarkRenderer {
 						opacity: layer.opacity,
 					},
 				};
+			} else {
+				throw new Error(`Unrecognized layer type: ${(layer as any).type}`);
 			}
 		});
 	}

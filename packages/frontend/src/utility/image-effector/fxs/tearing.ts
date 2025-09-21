@@ -37,42 +37,50 @@ void main() {
 }
 `;
 
-export const FX_glitch = defineImageEffectorFx({
-	id: 'glitch' as const,
-	name: i18n.ts._imageEffector._fxs.glitch,
+export const FX_tearing = defineImageEffectorFx({
+	id: 'tearing',
+	name: i18n.ts._imageEffector._fxs.glitch + ': ' + i18n.ts._imageEffector._fxs.tearing,
 	shader,
 	uniforms: ['amount', 'channelShift'] as const,
 	params: {
 		amount: {
-			type: 'number' as const,
+			label: i18n.ts._imageEffector._fxProps.amount,
+			type: 'number',
 			default: 3,
 			min: 1,
 			max: 100,
 			step: 1,
 		},
 		strength: {
-			type: 'number' as const,
-			default: 5,
-			min: -100,
-			max: 100,
+			label: i18n.ts._imageEffector._fxProps.strength,
+			type: 'number',
+			default: 0.05,
+			min: -1,
+			max: 1,
 			step: 0.01,
+			toViewValue: v => Math.round(v * 100) + '%',
 		},
 		size: {
-			type: 'number' as const,
-			default: 20,
+			label: i18n.ts._imageEffector._fxProps.size,
+			type: 'number',
+			default: 0.2,
 			min: 0,
-			max: 100,
+			max: 1,
 			step: 0.01,
+			toViewValue: v => Math.round(v * 100) + '%',
 		},
 		channelShift: {
-			type: 'number' as const,
+			label: i18n.ts._imageEffector._fxProps.glitchChannelShift,
+			type: 'number',
 			default: 0.5,
 			min: 0,
 			max: 10,
 			step: 0.01,
+			toViewValue: v => Math.round(v * 100) + '%',
 		},
 		seed: {
-			type: 'seed' as const,
+			label: i18n.ts._imageEffector._fxProps.seed,
+			type: 'seed',
 			default: 100,
 		},
 	},
@@ -87,10 +95,10 @@ export const FX_glitch = defineImageEffectorFx({
 			gl.uniform1f(o, rnd());
 
 			const s = gl.getUniformLocation(program, `u_shiftStrengths[${i.toString()}]`);
-			gl.uniform1f(s, (1 - (rnd() * 2)) * (params.strength / 100));
+			gl.uniform1f(s, (1 - (rnd() * 2)) * params.strength);
 
 			const h = gl.getUniformLocation(program, `u_shiftHeights[${i.toString()}]`);
-			gl.uniform1f(h, rnd() * (params.size / 100));
+			gl.uniform1f(h, rnd() * params.size);
 		}
 	},
 });
